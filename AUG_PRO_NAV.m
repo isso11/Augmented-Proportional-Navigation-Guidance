@@ -264,7 +264,7 @@ function AUG_PRO_NAV
     xlabel('X Position (m)', 'FontSize', fontSize);
     ylabel('Y Position (m)', 'FontSize', fontSize);
     title('Engagement Trajectories', 'FontSize', fontSize);
-    
+    hold off;
     leg1{end+1} = [' Missile - Run ', num2str(runCount)];
     leg1{end+1} = [' Target - Run ', num2str(runCount)];
 
@@ -302,6 +302,7 @@ function plotGuidanceCommands(time_array, nc_array, lambda_array, lm_array, lamb
     xlabel('Time (s)', 'FontSize', fontSize);
     ylabel('\lambda_L_O_S, \beta_m (^o)', 'FontSize', fontSize);
     title('LOS Angle and Leading Angle vs Time', 'FontSize', fontSize);
+    hold off;
     % Append the new legend entries
       leg{end+1} = [' \lambda - Run ', num2str(runCount)];
       leg{end+1} = [' \beta_m - Run ', num2str(runCount)];
