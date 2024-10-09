@@ -14,13 +14,17 @@ function AUG_PRO_NAV
     hFig = figure('Name', 'Nonlinear APNG Engagement Simulator', 'NumberTitle', 'off', 'Position', [100, 100, 900, 800], ...
         'WindowState','maximized','Units','normalized');
 
-    % Load the background image
-    bgImage = imread('D:\PhD\Proposed Publications\png.png');  % Replace with your image path
+    % Load the background image from the current working directory
+    imageFileName = 'apng.png';  % Replace with your image filename
+    imagePath = fullfile(pwd, imageFileName);  % Construct full path to the image
+    
+    bgImage = imread(imagePath);  % Load the image
     % Create an invisible axes for background
-    hBackground = axes('Parent', hFig, 'Position', [0.05, 0.36, 0.2,1], 'Visible', 'off');
+    hBackground = axes('Parent', hFig, 'Position', [0.05, 0.36, 0.2, 1], 'Visible', 'off');
     imshow(bgImage, 'Parent', hBackground);
     % Set the axes to be the bottom layer
     uistack(hBackground, 'bottom');
+
 
     %% Input Fields for Initial Conditions
     x1 = 10; y1 = 550; w1 = 150; w2 = 50; 
