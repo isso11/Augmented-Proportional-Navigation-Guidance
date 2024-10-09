@@ -97,11 +97,16 @@ function AUG_PRO_NAV
     hPlotLambdaDot = axes('Parent', hFig, 'Position', [0.35, 0.09, 0.295, 0.2]); box on % lambdaDot plot
     hPlotVc = axes('Parent', hFig, 'Position',        [0.69, 0.09, 0.295, 0.2]); box on % Vc plot
 
-    % Hold on button for comparision
-    uicontrol('Style', 'pushbutton','Units', 'normalized', ... % Use normalized units
-    'Position', [0.58, 0.012, 0.16, 0.04],'String', 'Hold on plots to compare!', ...
-    'Callback',  @(src, event) hold_on([hTrajPlot, hPlotNc, hPlotLambda, hPlotLambdaDot, hPlotVc]), ...
-    'BackgroundColor', [0.4, 0.9, 0.7],'FontSize', 10,'FontWeight', 'bold');
+    % Create a text label for the message
+    hMessageLabel = uicontrol('Style', 'text', 'Units', 'normalized', ...
+        'Position', [0.76, 0.012, 0.2, 0.04], 'String', '', ...  % Initial empty string
+        'FontSize', 10, 'FontWeight', 'bold', 'BackgroundColor', [0.95, 0.95, 0.95]);
+    
+    % Hold on button
+    uicontrol('Style', 'pushbutton', 'Units', 'normalized', ... % Use normalized units
+        'Position', [0.58, 0.012, 0.16, 0.04], 'String', 'Hold on plots to compare!', ...
+        'Callback', @(src, event) hold_on_button_callback([hTrajPlot, hPlotNc, hPlotLambda, hPlotLambdaDot, hPlotVc], hMessageLabel), ...
+        'BackgroundColor', [0.4, 0.9, 0.7], 'FontSize', 10, 'FontWeight', 'bold');
 
     %% Callback Function for Running the Simulation
     function runSimulation(~, ~)
@@ -148,8 +153,7 @@ function AUG_PRO_NAV
         t = 0;
         R = norm(Rt - Rm);
         Vc = 1000;
-        
-       
+               
         % Simulation loop
         while R >= 0.5 && Vc >= 0 && t <= t_max
             Rr = Rt - Rm;
@@ -254,8 +258,8 @@ function AUG_PRO_NAV
     fontSize = 12;
     held = 0;
     runCount = 1;
-    leg = {};
-    leg1 = {};
+    legtraj = {};  legnc = {};   legl = {};  legld = {};   legvc = {};
+
     function plotTrajectories(missile_positions, target_positions, ax)
     axes(ax);
     plot(missile_positions(1,:), missile_positions(2,:), 'LineWidth',2);
@@ -265,11 +269,11 @@ function AUG_PRO_NAV
     ylabel('Y Position (m)', 'FontSize', fontSize);
     title('Engagement Trajectories', 'FontSize', fontSize);
     hold off;
-    leg1{end+1} = [' Missile - Run ', num2str(runCount)];
-    leg1{end+1} = [' Target - Run ', num2str(runCount)];
+    legtraj{end+1} = [' Missile - Run ', num2str(runCount)];
+    legtraj{end+1} = [' Target - Run ', num2str(runCount)];
 
     if held == 1  % Update the legend with all runs
-        legend(ax, leg1);
+        legend(ax, legtraj);
     else
         % Show only the default legend for the first run
         legend(' Missile', ' Target');
@@ -278,18 +282,21 @@ function AUG_PRO_NAV
     end
 
 
-
 function plotGuidanceCommands(time_array, nc_array, lambda_array, lm_array, lambdaDot_array, Vc_array, ...
                               axNc, axLambda, axLambdaDot, axVc)
     
     % Plot nc
     axes(axNc);
-    plot(time_array, nc_array, 'LineWidth', 2, 'DisplayName', [' n_c - Run ', num2str(runCount)]);
+    plot(time_array, nc_array, 'LineWidth', 2);
     xlabel('Time (s)', 'FontSize', fontSize);
     ylabel('Guidance Command, n_c  (g)', 'FontSize', fontSize);
     title('Guidance Command vs Time', 'FontSize', fontSize);
-    if ishold
-    legend('show');
+    legnc{end+1} = [' n_c - Run ', num2str(runCount)];
+
+    if held == 1  % Update the legend with all runs
+        legend(axNc, legnc);
+    else
+        legend off;
     end
     grid on; box on;
     
@@ -303,12 +310,13 @@ function plotGuidanceCommands(time_array, nc_array, lambda_array, lm_array, lamb
     ylabel('\lambda_L_O_S, \beta_m (^o)', 'FontSize', fontSize);
     title('LOS Angle and Leading Angle vs Time', 'FontSize', fontSize);
     hold off;
+
     % Append the new legend entries
-      leg{end+1} = [' \lambda - Run ', num2str(runCount)];
-      leg{end+1} = [' \beta_m - Run ', num2str(runCount)];
+      legl{end+1} = [' \lambda - Run ', num2str(runCount)];
+      legl{end+1} = [' \beta_m - Run ', num2str(runCount)];
     
     if held == 1  % Update the legend with all runs
-        legend(axLambda, leg);
+        legend(axLambda, legl);
     else
         % Show only the default legend for the first run
         legend('\lambda', '\beta_m');
@@ -318,23 +326,33 @@ function plotGuidanceCommands(time_array, nc_array, lambda_array, lm_array, lamb
 
     % Plot lambdaDot
     axes(axLambdaDot);
-    plot(time_array, lambdaDot_array, 'LineWidth', 2,'DisplayName', [' \lambdadot - Run ', num2str(runCount)]);
+    plot(time_array, lambdaDot_array, 'LineWidth', 2);
     xlabel('Time (s)', 'FontSize', fontSize);
     ylabel('LOS Angle Rate, $\dot{\lambda}$ ($^o$/s)', 'Interpreter', 'latex', 'FontSize', fontSize);
     title('Rate of Change of LOS Angle vs Time', 'FontSize', fontSize);
-    if ishold
-    legend('show');
-    end    
+    
+    legld{end+1} = [' \lambdadot - Run ', num2str(runCount)];
+    if held == 1  % Update the legend with all runs
+        legend(axLambdaDot, legld);
+    else
+        % Show only the default legend for the first run
+        legend off;
+    end  
     grid on; box on;
 
     % Plot Vc
     axes(axVc);
-    plot(time_array, Vc_array, 'LineWidth', 2, 'DisplayName', [' V_c Run ', num2str(runCount)]);
+    plot(time_array, Vc_array, 'LineWidth', 2);
     xlabel('Time (s)', 'FontSize', fontSize);
     ylabel('Closing Velocity, Vc (m/s)', 'FontSize', fontSize);
     title('Closing Velocity vs Time', 'FontSize', fontSize);
-    if ishold
-    legend('show');
+
+    legvc{end+1} =  [' V_c Run ', num2str(runCount)];
+    if held == 1  % Update the legend with all runs
+        legend(axVc, legvc);
+    else
+        % Show only the default legend for the first run
+        legend off;
     end    
     grid on; box on;
 
@@ -342,23 +360,16 @@ function plotGuidanceCommands(time_array, nc_array, lambda_array, lm_array, lamb
   
 end
 
-
-% Define the hold_on function
-function hold_on(axHandles)
-    held = 1;
-    % Loop through each axis
-    for ax = axHandles
-        hold(ax, 'on');  % Hold on for each axis
-
+    % Callback function for the button
+    function hold_on_button_callback(axHandles, messageLabel)
+        held = 1;
+        hold(axHandles, 'on');  % Hold on for each axis
+        set(messageLabel, 'String', 'Press again after every run!');  % Update the message label
+        disp('Holding on to the plots for comparison! Press again after every run!');
     end
-    disp('Holding on to the plots for comparison! Press again after every run!');
-end
-
 
   %% Reset All
     function resetFields(~, ~)
-       
-        % Fields Callback
         set(hRt, 'String', '5000; 5000');
         set(hRm, 'String', '0; 5000');
         set(hVT, 'String', '150');
@@ -375,17 +386,15 @@ end
         set(hMissDistanceLabel, 'String', 'Final Miss Distance: ...');
         
         % Clear all plots
+        set(hMessageLabel, 'String', '');  % Clear the message
         hold([hTrajPlot,hPlotNc,hPlotLambda,hPlotLambdaDot,hPlotVc],'off')
         cla(hTrajPlot);
         cla(hPlotNc);
         cla(hPlotLambda);
         cla(hPlotLambdaDot);
         cla(hPlotVc); 
-        
-        % Reset tracking variables
         runCount = 1;
         held = 0;
-        leg = {};
-        leg1 = {};
+        legtraj = {};  legnc = {};   legl = {};  legld = {};   legvc = {};
     end
 end
