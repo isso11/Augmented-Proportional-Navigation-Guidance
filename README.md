@@ -51,3 +51,7 @@ The **Nonlinear APNG Engagement Simulator** is a MATLAB-based graphical user int
 ## Author
 **Islam Elnady**  
 Email: islamelnady@yahoo.com  
+
+## REFERENCES: 
+ • Ben Dickinson's Toturial Series: Guidance Fundamentals
+ • Zarchan, P., 2012. Tactical and Stratigic missile Guidance, AIAA Press,
