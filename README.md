@@ -3,8 +3,7 @@ Nonlinear Augmented Proportional Navigation (APNG) Engagement Simulator. This GU
 
 ## Overview
 
-![GUI Preview]([URL_OF_YOUR_IMAGE](https://github.com/isso11/Augmented-Proportional-Navigation-Guidance/blob/main/image.png?raw=true
-))
+![GUI Preview](https://github.com/isso11/Augmented-Proportional-Navigation-Guidance/blob/main/image.png?raw=true)
 
 The **Nonlinear APNG Engagement Simulator** is a MATLAB-based graphical user interface (GUI) designed to simulate missile-target engagements using the Augmented Proportional Navigation Guidance (APNG) method. This tool allows users to input various parameters related to the missile and target dynamics and visualize the resulting trajectories and guidance commands.
 
