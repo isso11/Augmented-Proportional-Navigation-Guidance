@@ -31,54 +31,57 @@ function AUG_PRO_NAV
     uicontrol('Style', 'text', 'Position', [x1 y1, w1, 20], 'String', 'Target Initial Pos. [Rt] (m):');
     hRt = uicontrol('Style', 'edit', 'Position', [x1+130, y1, w2, 20], 'String', '5000; 5000');
     
-    uicontrol('Style', 'text', 'Position', [x1, y1-30, w1, 20], 'String', 'Missile Initial Pos. [Rm] (m):');
-    hRm = uicontrol('Style', 'edit', 'Position', [x1+130, y1-30, w2, 20], 'String', '0; 5000');
+    uicontrol('Style', 'text', 'Position', [x1 y1-30, w1, 20], 'String', 'Target Initial Heading. [beta] (deg) :');
+    hbt = uicontrol('Style', 'edit', 'Position', [x1+130, y1-30, w2, 20], 'String', '0');
+  
+    uicontrol('Style', 'text', 'Position', [x1, y1-60, w1, 20], 'String', 'Missile Initial Pos. [Rm] (m):');
+    hRm = uicontrol('Style', 'edit', 'Position', [x1+130, y1-60, w2, 20], 'String', '0; 5000');
     
-    uicontrol('Style', 'text', 'Position', [x1, y1-60, w1, 20], 'String', 'Target Velocity [VT] (m/s):');
-    hVT = uicontrol('Style', 'edit', 'Position', [x1+130, y1-60, w2, 20], 'String', '150');
+    uicontrol('Style', 'text', 'Position', [x1, y1-90, w1, 20], 'String', 'Target Velocity [VT] (m/s):');
+    hVT = uicontrol('Style', 'edit', 'Position', [x1+130, y1-90, w2, 20], 'String', '150');
     
-    uicontrol('Style', 'text', 'Position', [x1, y1-90, w1, 20], 'String', 'Missile Velocity [VM] (m/s):');
-    hVM = uicontrol('Style', 'edit', 'Position', [x1+130,  y1-90, w2, 20], 'String', '300');
+    uicontrol('Style', 'text', 'Position', [x1, y1-120, w1, 20], 'String', 'Missile Velocity [VM] (m/s):');
+    hVM = uicontrol('Style', 'edit', 'Position', [x1+130,  y1-120, w2, 20], 'String', '300');
     
-    uicontrol('Style', 'text', 'Position', [x1, y1-120, w1, 20], 'String', 'Missile Heading Angle [HE] (rad):');
-    hHE = uicontrol('Style', 'edit', 'Position', [x1+130, y1-120, w2, 20], 'String', '0');
+    uicontrol('Style', 'text', 'Position', [x1, y1-150, w1, 20], 'String', 'Missile Heading Angle [HE] (rad):');
+    hHE = uicontrol('Style', 'edit', 'Position', [x1+130, y1-150, w2, 20], 'String', '0');
     
-    uicontrol('Style', 'text', 'Position', [x1, y1-150, w1, 20], 'String', 'Target Acceleration [nT] (g):');
-    hNT = uicontrol('Style', 'edit', 'Position', [x1+130, y1-150, w2, 20], 'String', '2'); % Example: 2g
+    uicontrol('Style', 'text', 'Position', [x1, y1-180, w1, 20], 'String', 'Target Acceleration [nT] (g):');
+    hNT = uicontrol('Style', 'edit', 'Position', [x1+130, y1-180, w2, 20], 'String', '2'); % Example: 2g
     
-    uicontrol('Style', 'text', 'Position', [x1, y1-180, w1, 20], 'String', 'Navigation Constant [N]:');
-    hN = uicontrol('Style', 'edit', 'Position', [x1+130, y1-180, w2, 20], 'String', '3');
+    uicontrol('Style', 'text', 'Position', [x1, y1-210, w1, 20], 'String', 'Navigation Constant [N]:');
+    hN = uicontrol('Style', 'edit', 'Position', [x1+130, y1-210, w2, 20], 'String', '3');
 
     %% Input Fields for Noise (Optional)
-    uicontrol('Style', 'text', 'Position', [x1, y1-210, w1, 20], 'String', 'Noise Sigma LambdaDot:');
-    hSigmaLambdaDot = uicontrol('Style', 'edit', 'Position', [x1+130, y1-210, w2, 20], 'String', '0');
+    uicontrol('Style', 'text', 'Position', [x1, y1-240, w1, 20], 'String', 'Noise Sigma LambdaDot:');
+    hSigmaLambdaDot = uicontrol('Style', 'edit', 'Position', [x1+130, y1-240, w2, 20], 'String', '0');
     
-    uicontrol('Style', 'text', 'Position', [x1, y1-240, w1, 20], 'String', 'Noise Sigma Vc:');
-    hSigmaVc = uicontrol('Style', 'edit', 'Position', [x1+130, y1-240, w2, 20], 'String', '0');
+    uicontrol('Style', 'text', 'Position', [x1, y1-270, w1, 20], 'String', 'Noise Sigma Vc:');
+    hSigmaVc = uicontrol('Style', 'edit', 'Position', [x1+130, y1-270, w2, 20], 'String', '0');
     
-    uicontrol('Style', 'text', 'Position', [x1, y1-270, w1, 20], 'String', 'Noise Sigma nT:');
-    hSigmanT = uicontrol('Style', 'edit', 'Position', [x1+130, y1-270, w2, 20], 'String', '0');
+    uicontrol('Style', 'text', 'Position', [x1, y1-300, w1, 20], 'String', 'Noise Sigma nT:');
+    hSigmanT = uicontrol('Style', 'edit', 'Position', [x1+130, y1-300, w2, 20], 'String', '0');
 
 
     %% Input Fields for Guidance Command Limits (Optional)
-    uicontrol('Style', 'text', 'Position', [x1, y1-300, w1, 20], 'String', 'Upper Limit for nc:');
-    hUpperLimit = uicontrol('Style', 'edit', 'Position', [x1+130, y1-300, w2, 20], 'String', 'inf');
+    uicontrol('Style', 'text', 'Position', [x1, y1-330, w1, 20], 'String', 'Upper Limit for nc:');
+    hUpperLimit = uicontrol('Style', 'edit', 'Position', [x1+130, y1-330, w2, 20], 'String', 'inf');
     
-    uicontrol('Style', 'text', 'Position', [x1, y1-330, w1, 20], 'String', 'Lower Limit for nc:');
-    hLowerLimit = uicontrol('Style', 'edit', 'Position', [x1+130,  y1-330, w2, 20], 'String', '-inf');
+    uicontrol('Style', 'text', 'Position', [x1, y1-360, w1, 20], 'String', 'Lower Limit for nc:');
+    hLowerLimit = uicontrol('Style', 'edit', 'Position', [x1+130,  y1-360, w2, 20], 'String', '-inf');
 
     %% Simulation and Reset Buttons
-    uicontrol('Style', 'text','Units','normalized', 'Position', [0.037, 0.222, 0.093, 0.024], 'String', 'Simulation Time Step (s):', ...
+    uicontrol('Style', 'text','Units','normalized', 'Position', [0.037, 0.196, 0.093, 0.024], 'String', 'Simulation Time Step (s):', ...
               'BackgroundColor',[0.6 0.9 0.9]);
-    hdt = uicontrol('Style', 'edit', 'Position', [x1+130, y1-370, w2, 18], 'String', '1e-3');
+    hdt = uicontrol('Style', 'edit', 'Position', [x1+130, y1-390, w2, 18], 'String', '1e-3');
 
-    uicontrol('Style', 'pushbutton', 'Position', [50, y1-410, w2, 25], 'String', 'Simulate', ...
+    uicontrol('Style', 'pushbutton', 'Position', [50, y1-430, w2, 30], 'String', 'Simulate', ...
              'Callback', @runSimulation,'BackgroundColor','g','FontSize',11,'FontWeight','bold');
-    uicontrol('Style', 'pushbutton', 'Position', [x1+130, y1-410, w2, 25], 'String', 'Reset', ...
+    uicontrol('Style', 'pushbutton', 'Position', [x1+130, y1-430, w2, 30], 'String', 'Reset', ...
              'Callback', @resetFields,'BackgroundColor','r','FontSize',11,'FontWeight','bold');
 
     %% Label for Miss Distance
-    hMissDistanceLabel = uicontrol('Style', 'text', 'Position', [x1+20, y1-455, w1+20, 30], ...
+    hMissDistanceLabel = uicontrol('Style', 'text', 'Position', [x1+20, y1-470, w1+20, 30], ...
                                     'String', 'Final Miss Distance: ...', ...
                                     'FontWeight', 'bold', 'FontSize', 12, ...
                                     'ForegroundColor', 'red');
@@ -99,8 +102,8 @@ function AUG_PRO_NAV
 
     % Create a text label for the message
     hMessageLabel = uicontrol('Style', 'text', 'Units', 'normalized', ...
-        'Position', [0.76, 0.012, 0.2, 0.04], 'String', '', ...  % Initial empty string
-        'FontSize', 10, 'FontWeight', 'bold', 'BackgroundColor', [0.95, 0.95, 0.95]);
+        'Position', [0.71, 0.012, 0.2, 0.03], 'String', '', ...  % Initial empty string
+        'FontSize', 10, 'FontWeight', 'bold', 'BackgroundColor', [0.95, 0.95, 0.95],'ForegroundColor', 'red');
     
     % Hold on button
     uicontrol('Style', 'pushbutton', 'Units', 'normalized', ... % Use normalized units
@@ -116,12 +119,14 @@ function AUG_PRO_NAV
         VT = str2double(get(hVT, 'String'));
         VM = str2double(get(hVM, 'String'));
         HE = deg2rad(str2double(get(hHE, 'String')));
-        
-        % Convert nT from g to m/s^2
+        dt = str2double(get(hdt, 'String'));
+        t_max = 1000;
+
         g = 9.81; % acceleration due to gravity in m/s^2
         nT_g = str2double(get(hNT, 'String'));
         nT = nT_g * g; % convert to m/s^2
-        
+        beta = deg2rad(str2double(get(hbt, 'String'))); % get target's heading in rads
+
         N = str2double(get(hN, 'String'));
         sigma_LambdaDot = str2double(get(hSigmaLambdaDot, 'String'));
         sigma_nT = str2double(get(hSigmanT, 'String'));
@@ -130,9 +135,7 @@ function AUG_PRO_NAV
         lowerLimit = str2double(get(hLowerLimit, 'String'));
 
         % Initial Conditions and Parameters
-        dt = str2double(get(hdt, 'String'));
-        t_max = 1000;
-        beta = deg2rad(0);
+
         Vt = [-VT * cos(beta); VT * sin(beta)];
         nc = 0;
         Xr = Rt(1) - Rm(1);
@@ -371,6 +374,7 @@ end
   %% Reset All
     function resetFields(~, ~)
         set(hRt, 'String', '5000; 5000');
+        set(hbt, 'String', '0');
         set(hRm, 'String', '0; 5000');
         set(hVT, 'String', '150');
         set(hVM, 'String', '300');
