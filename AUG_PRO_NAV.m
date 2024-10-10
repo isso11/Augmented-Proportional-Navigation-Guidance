@@ -129,6 +129,9 @@ function AUG_PRO_NAV
 
     %% Callback Function for Running the Simulation
     function runSimulation(~, ~)
+        set(hButton, 'Visible', 'on');
+        if held ~=1;  cla(hAnimate);  end
+
         % Get inputs from GUI
         Rt = str2num(get(hRt, 'String'));
         Rm = str2num(get(hRm, 'String'));
@@ -303,7 +306,6 @@ function AUG_PRO_NAV
         target_pos = data.target_pos;
         set(hButton, 'Visible', 'off');
         animateTraj(missile_pos, missile_vel, missile_acc, target_pos, ax)
-        set(hButton, 'Visible', 'on');
 
     end
 
@@ -329,45 +331,53 @@ function AUG_PRO_NAV
         grid on;    axis equal;   box on;  % Add box around the plot
     end
 
+%% Animate Trajectories
    function animateTraj(missile_pos, missile_vel, missile_acc, target_pos, ax)
-        axes(ax);     hold on;
-        axis equal;   box on;       % Add box around the plot
+        axes(ax);  axis equal;  box on; hold on
+        % Add box around the plot
         xlabel(ax,'X Position (m)', 'FontSize', fontSize);
         ylabel(ax,'Y Position (m)', 'FontSize', fontSize);
         title(ax,'Engagement Trajectories', 'FontSize', fontSize);
-    
+     
         d =  round(length(missile_pos)/(150)); 
         for i = 1:d:length(missile_pos)  
+     
+        % Check if 'i' reaches near the end of the data
+        if i >= length(missile_pos) - 3000
+           xl = [missile_pos(1,i)-500, missile_pos(1,i)+500];
+           yl = [missile_pos(2,i)-500, missile_pos(2,i)+500];
+           set(gca, 'XLim', xl);
+           set(gca, 'YLim', yl);  
+        end
     
-            if stopSimulation
-            disp('Simulation stopped.');
-            break; % Exit the loop
-            end
+        if stopSimulation
+        disp('Simulation stopped.');
+        break; % Exit the loop
+        end
     
         plot(missile_pos(1,i), missile_pos(2,i),'ko', 'LineWidth', 1.5,'MarkerSize', 2); 
-        grid on;
         plot(target_pos(1,i), target_pos(2,i),'ko', 'LineWidth', 1.5, 'MarkerSize', 2);
     
         if i > 1 % Ensure quivers are only drawn after the first iteration
-            delete(qv_v);
-            delete(qv_a);
-            delete(hr);
+           delete(qv_v);
+           delete(qv_a);
+           delete(hr);
         end
     
-        hr =  plot([missile_pos(1,i) target_pos(1,i)], [missile_pos(2,i) target_pos(2,i)], 'k--','LineWidth', 1);
+        hr =  plot([missile_pos(1,i) target_pos(1,i)], [missile_pos(2,i) target_pos(2,i)],'k--','LineWidth', 1);
     
         % Plot velocity vector (Vm)
-        qv_v = quiver(missile_pos(1,i), missile_pos(2,i), missile_vel(1,i), missile_vel(2,i),'g','LineWidth', 2);
-        
+        qv_v = quiver(missile_pos(1,i), missile_pos(2,i), missile_vel(1,i), missile_vel(2,i),0, ...
+                     'g','LineWidth', 2,'MaxHeadSize',10);    
         % Plot guidance command vector (nc)
-        qv_a =  quiver(missile_pos(1,i), missile_pos(2,i), missile_acc(1,i), missile_acc(2,i),'r', 'LineWidth', 2);
-        
+        qv_a =  quiver(missile_pos(1,i), missile_pos(2,i), missile_acc(1,i)*8, missile_acc(2,i)*8,0, ...
+                      'r', 'LineWidth', 2,'MaxHeadSize',10);    
         legend([qv_v, qv_a], {' V_m', ' A_m'});
         drawnow
         pause(0.001);
-       
+        grid on;
         end 
-  
+        xlim('auto');  ylim('auto'); 
    end
 
 
