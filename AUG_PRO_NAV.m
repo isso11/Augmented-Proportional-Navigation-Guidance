@@ -5,12 +5,20 @@ function AUG_PRO_NAV
     %
     % ... Created by: Islam Elnady - islamelnady@yahoo.com
   
-    % Create the main figure window
+    %% Setup default figure properties
     set(0, 'DefaultFigureWindowStyle', 'default');
     set(0, 'DefaultTextInterpreter', 'tex');
     set(0, 'DefaultLegendInterpreter', 'tex');
     set(0, 'DefaultAxesTickLabelInterpreter', 'tex');
 
+    % GLobal Variables
+    global stopSimulation
+    fontSize = 11;
+    held = 0;
+    runCount = 1;
+    legtraj = {};  legnc = {};   legl = {};  legld = {};   legvc = {};
+
+    % Create the main figure window
     hFig = figure('Name', 'Nonlinear APNG Engagement Simulator', 'NumberTitle', 'off', 'Position', [100, 100, 900, 800], ...
         'WindowState','maximized','Units','normalized');
 
@@ -70,7 +78,7 @@ function AUG_PRO_NAV
     uicontrol('Style', 'text', 'Position', [x1, y1-360, w1, 20], 'String', 'Lower Limit for nc:');
     hLowerLimit = uicontrol('Style', 'edit', 'Position', [x1+130,  y1-360, w2, 20], 'String', '-inf');
 
-    %% Simulation and Reset Buttons
+    %% Simulation and Reset Controls
     uicontrol('Style', 'text','Units','normalized', 'Position', [0.037, 0.196, 0.093, 0.024], 'String', 'Simulation Time Step (s):', ...
               'BackgroundColor',[0.6 0.9 0.9]);
     hdt = uicontrol('Style', 'edit', 'Position', [x1+130, y1-390, w2, 18], 'String', '1e-3');
@@ -91,10 +99,18 @@ function AUG_PRO_NAV
         'String', 'Created by: Islam Elnady * islamelnady@yahoo.com*', ...
              'BackgroundColor',[0.95 0.95 0.0],'FontSize',10,'HorizontalAlignment','center');
 
-    % Normalize units for all objects
+
     set(hFig.Children, 'Units', 'normalized');
+    
     %% Axes for plotting results
-    hTrajPlot = axes('Parent', hFig, 'Position',      [0.35, 0.65, 0.63, 0.31]); box on % Engagement Trajectories
+    hTrajPlot = axes('Parent', hFig,'Units','normalized','Position', [0.35,  0.65, 0.295, 0.3]); box on % Engagement Trajectories
+    hAnimate = axes('Parent', hFig,'Units','normalized', 'Position', [0.69,  0.65, 0.295, 0.3]); box on % Animate Engagement Trajectories
+
+    % Create a button to start the animation
+    hButton = uicontrol('Style', 'pushbutton', 'String', 'Start Animation','Units','normalized', ...
+              'Position', [0.8, 0.8, 0.083, 0.065],'BackgroundColor',[0.9 0.9 0.6],'FontSize',9, ...
+              'Callback', @(src, event) startanimation(hAnimate));
+
     hPlotNc = axes('Parent', hFig, 'Position',        [0.35, 0.37, 0.295, 0.2]); box on% nc plot
     hPlotLambda = axes('Parent', hFig, 'Position',    [0.69, 0.37, 0.295, 0.2]); box on % lambda plot
     hPlotLambdaDot = axes('Parent', hFig, 'Position', [0.35, 0.09, 0.295, 0.2]); box on % lambdaDot plot
@@ -108,7 +124,7 @@ function AUG_PRO_NAV
     % Hold on button
     uicontrol('Style', 'pushbutton', 'Units', 'normalized', ... % Use normalized units
         'Position', [0.58, 0.012, 0.16, 0.04], 'String', 'Hold on plots to compare!', ...
-        'Callback', @(src, event) hold_on_button_callback([hTrajPlot, hPlotNc, hPlotLambda, hPlotLambdaDot, hPlotVc], hMessageLabel), ...
+        'Callback', @(src, event) hold_on_button_callback([hTrajPlot,hAnimate, hPlotNc, hPlotLambda, hPlotLambdaDot, hPlotVc], hMessageLabel), ...
         'BackgroundColor', [0.4, 0.9, 0.7], 'FontSize', 10, 'FontWeight', 'bold');
 
     %% Callback Function for Running the Simulation
@@ -144,9 +160,14 @@ function AUG_PRO_NAV
         L = asin(VT * sin(beta + lambda) / VM);
         Vm = [VM * cos(lambda + L + HE); VM * sin(lambda + L + HE)];
         Am = [0; 0];
-        missile_positions = [];
+        missile_pos = [];
+        missile_vel = [];
+        missile_acc = [];
         lm_array = [];
-        target_positions = [];
+
+        target_pos = [];
+        Rr_array = [];
+
         nc_array = [];
         lambda_array = [];
         lambdaDot_array = [];
@@ -192,9 +213,16 @@ function AUG_PRO_NAV
             L = asin(VT * sin(beta + lambda) / VM);
 
             % Store data
-            missile_positions = [missile_positions, Rm];
+            missile_pos = [missile_pos, Rm];
+            missile_vel = [missile_vel, Vm];
+            missile_acc = [missile_acc, Am];
             lm_array = [lm_array Lm];
-            target_positions = [target_positions, Rt];
+
+            target_pos = [target_pos, Rt];
+            
+            Rr_array = [Rr_array, Rr];
+
+
             nc_array = [nc_array, nc];
             lambda_array = [lambda_array, lambda];
             lambdaDot_array = [lambdaDot_array, lambdaD];
@@ -207,7 +235,7 @@ function AUG_PRO_NAV
         
         % Calculate final miss distance
         final_miss_distance = norm(Rt - Rm);
-       set(hMissDistanceLabel, 'String', ['Final Miss Distance: ', sprintf('%.3f', final_miss_distance), ' m']);
+        set(hMissDistanceLabel, 'String', ['Final Miss Distance: ', sprintf('%.3f', final_miss_distance), ' m']);
         
         % Check if missile intercepted the target
         if R < 1
@@ -217,10 +245,18 @@ function AUG_PRO_NAV
         end
         
         % Plot the results
-        plotTrajectories(missile_positions, target_positions, hTrajPlot);
+    
+        stopSimulation = false;
+       
+        % Make the handle accessible for the callback
+        guidata(hFig, struct('missile_pos', missile_pos, 'missile_vel', missile_vel, ...
+                         'missile_acc', missile_acc, 'target_pos', target_pos));
+
+        plotTrajectories(missile_pos, target_pos, hTrajPlot);
         plotGuidanceCommands(time_array, nc_array./g, rad2deg(lambda_array),rad2deg(lm_array), ...
                              rad2deg(lambdaDot_array), Vc_array, hPlotNc, hPlotLambda, hPlotLambdaDot, hPlotVc);
     end
+
 
     %% RK4 Integration for Missile and Target
     function [R_next, V_next] = rk4_missile(R, V, A, dt)
@@ -257,110 +293,159 @@ function AUG_PRO_NAV
         R_next = R + (k1_R + 2*k2_R + 2*k3_R + k4_R) / 6;
     end
 
+
     %% Plot Functions
-    fontSize = 12;
-    held = 0;
-    runCount = 1;
-    legtraj = {};  legnc = {};   legl = {};  legld = {};   legvc = {};
+    function startanimation(ax)
+        data = guidata(gca); % Get the data stored in the figure
+        missile_pos = data.missile_pos;
+        missile_vel = data.missile_vel;
+        missile_acc = data.missile_acc;
+        target_pos = data.target_pos;
+        set(hButton, 'Visible', 'off');
+        animateTraj(missile_pos, missile_vel, missile_acc, target_pos, ax)
+        set(hButton, 'Visible', 'on');
 
-    function plotTrajectories(missile_positions, target_positions, ax)
-    axes(ax);
-    plot(missile_positions(1,:), missile_positions(2,:), 'LineWidth',2);
-    hold on;
-    plot(target_positions(1,:), target_positions(2,:), 'LineWidth', 2);
-    xlabel('X Position (m)', 'FontSize', fontSize);
-    ylabel('Y Position (m)', 'FontSize', fontSize);
-    title('Engagement Trajectories', 'FontSize', fontSize);
-    hold off;
-    legtraj{end+1} = [' Missile - Run ', num2str(runCount)];
-    legtraj{end+1} = [' Target - Run ', num2str(runCount)];
-
-    if held == 1  % Update the legend with all runs
-        legend(ax, legtraj);
-    else
-        % Show only the default legend for the first run
-        legend(' Missile', ' Target');
-    end 
-    grid on;    axis equal;   box on;  % Add box around the plot
     end
 
-
-function plotGuidanceCommands(time_array, nc_array, lambda_array, lm_array, lambdaDot_array, Vc_array, ...
-                              axNc, axLambda, axLambdaDot, axVc)
+    function plotTrajectories(missile_pos, target_pos, ax)
+        axes(ax);
     
-    % Plot nc
-    axes(axNc);
-    plot(time_array, nc_array, 'LineWidth', 2);
-    xlabel('Time (s)', 'FontSize', fontSize);
-    ylabel('Guidance Command, n_c  (g)', 'FontSize', fontSize);
-    title('Guidance Command vs Time', 'FontSize', fontSize);
-    legnc{end+1} = [' n_c - Run ', num2str(runCount)];
-
-    if held == 1  % Update the legend with all runs
-        legend(axNc, legnc);
-    else
-        legend off;
+        plot(missile_pos(1,:), missile_pos(2,:), 'LineWidth',2);
+        hold on;
+        plot(target_pos(1,:), target_pos(2,:), 'LineWidth', 2);
+        xlabel('X Position (m)', 'FontSize', fontSize);
+        ylabel('Y Position (m)', 'FontSize', fontSize);
+        title('Engagement Trajectories', 'FontSize', fontSize);
+        hold off;
+        legtraj{end+1} = [' Missile - Run ', num2str(runCount)];
+        legtraj{end+1} = [' Target - Run ', num2str(runCount)];
+    
+        if held == 1  % Update the legend with all runs
+            legend(ax, legtraj);
+        else
+            % Show only the default legend for the first run
+            legend(' Missile', ' Target');
+        end 
+        grid on;    axis equal;   box on;  % Add box around the plot
     end
-    grid on; box on;
+
+   function animateTraj(missile_pos, missile_vel, missile_acc, target_pos, ax)
+        axes(ax);     hold on;
+        axis equal;   box on;       % Add box around the plot
+        xlabel(ax,'X Position (m)', 'FontSize', fontSize);
+        ylabel(ax,'Y Position (m)', 'FontSize', fontSize);
+        title(ax,'Engagement Trajectories', 'FontSize', fontSize);
     
+        d =  round(length(missile_pos)/(150)); 
+        for i = 1:d:length(missile_pos)  
     
-    % Plot lambda and leading angle
-    axes(axLambda);
-    plot(time_array, lambda_array, 'LineWidth', 2, 'DisplayName', [' \lambda - Run ', num2str(runCount)]);
-    hold on;
-    plot(time_array, lm_array, 'LineWidth', 2, 'DisplayName', ['\beta_m - Run ', num2str(runCount)]);
-    xlabel('Time (s)', 'FontSize', fontSize);
-    ylabel('\lambda_L_O_S, \beta_m (^o)', 'FontSize', fontSize);
-    title('LOS Angle and Leading Angle vs Time', 'FontSize', fontSize);
-    hold off;
-
-    % Append the new legend entries
-      legl{end+1} = [' \lambda - Run ', num2str(runCount)];
-      legl{end+1} = [' \beta_m - Run ', num2str(runCount)];
+            if stopSimulation
+            disp('Simulation stopped.');
+            break; % Exit the loop
+            end
     
-    if held == 1  % Update the legend with all runs
-        legend(axLambda, legl);
-    else
-        % Show only the default legend for the first run
-        legend('\lambda', '\beta_m');
-    end 
-    grid on; box on;
-
-
-    % Plot lambdaDot
-    axes(axLambdaDot);
-    plot(time_array, lambdaDot_array, 'LineWidth', 2);
-    xlabel('Time (s)', 'FontSize', fontSize);
-    ylabel('LOS Angle Rate, $\dot{\lambda}$ ($^o$/s)', 'Interpreter', 'latex', 'FontSize', fontSize);
-    title('Rate of Change of LOS Angle vs Time', 'FontSize', fontSize);
+        plot(missile_pos(1,i), missile_pos(2,i),'ko', 'LineWidth', 1.5,'MarkerSize', 2); 
+        grid on;
+        plot(target_pos(1,i), target_pos(2,i),'ko', 'LineWidth', 1.5, 'MarkerSize', 2);
     
-    legld{end+1} = [' \lambdadot - Run ', num2str(runCount)];
-    if held == 1  % Update the legend with all runs
-        legend(axLambdaDot, legld);
-    else
-        % Show only the default legend for the first run
-        legend off;
-    end  
-    grid on; box on;
-
-    % Plot Vc
-    axes(axVc);
-    plot(time_array, Vc_array, 'LineWidth', 2);
-    xlabel('Time (s)', 'FontSize', fontSize);
-    ylabel('Closing Velocity, Vc (m/s)', 'FontSize', fontSize);
-    title('Closing Velocity vs Time', 'FontSize', fontSize);
-
-    legvc{end+1} =  [' V_c Run ', num2str(runCount)];
-    if held == 1  % Update the legend with all runs
-        legend(axVc, legvc);
-    else
-        % Show only the default legend for the first run
-        legend off;
-    end    
-    grid on; box on;
-
-    runCount = runCount + 1 ; % Increment run count after each simulation
+        if i > 1 % Ensure quivers are only drawn after the first iteration
+            delete(qv_v);
+            delete(qv_a);
+            delete(hr);
+        end
+    
+        hr =  plot([missile_pos(1,i) target_pos(1,i)], [missile_pos(2,i) target_pos(2,i)], 'k--','LineWidth', 1);
+    
+        % Plot velocity vector (Vm)
+        qv_v = quiver(missile_pos(1,i), missile_pos(2,i), missile_vel(1,i), missile_vel(2,i),'g','LineWidth', 2);
+        
+        % Plot guidance command vector (nc)
+        qv_a =  quiver(missile_pos(1,i), missile_pos(2,i), missile_acc(1,i), missile_acc(2,i),'r', 'LineWidth', 2);
+        
+        legend([qv_v, qv_a], {' V_m', ' A_m'});
+        drawnow
+        pause(0.001);
+       
+        end 
   
+   end
+
+
+   function plotGuidanceCommands(time_array, nc_array, lambda_array, lm_array, lambdaDot_array, ...
+                                 Vc_array,axNc, axLambda, axLambdaDot, axVc)
+    
+     % Plot nc
+        axes(axNc);
+        plot(time_array, nc_array, 'LineWidth', 2);
+        xlabel('Time (s)', 'FontSize', fontSize);
+        ylabel('Guidance Command, n_c  (g)', 'FontSize', fontSize);
+        title('Guidance Command vs Time', 'FontSize', fontSize);
+        legnc{end+1} = [' n_c - Run ', num2str(runCount)];
+    
+        if held == 1  % Update the legend with all runs
+            legend(axNc, legnc);
+        else
+            legend off;
+        end
+        grid on; box on;
+        
+        
+     % Plot lambda and leading angle
+        axes(axLambda);
+        plot(time_array, lambda_array, 'LineWidth', 2, 'DisplayName', [' \lambda - Run ', num2str(runCount)]);
+        hold on;
+        plot(time_array, lm_array, 'LineWidth', 2, 'DisplayName', ['\beta_m - Run ', num2str(runCount)]);
+        xlabel('Time (s)', 'FontSize', fontSize);
+        ylabel('\lambda_L_O_S, \beta_m (^o)', 'FontSize', fontSize);
+        title('LOS Angle and Leading Angle vs Time', 'FontSize', fontSize);
+        hold off;
+        % Append the new legend entries
+          legl{end+1} = [' \lambda - Run ', num2str(runCount)];
+          legl{end+1} = [' \beta_m - Run ', num2str(runCount)];
+        
+        if held == 1  % Update the legend with all runs
+            legend(axLambda, legl);
+        else
+            % Show only the default legend for the first run
+            legend('\lambda', '\beta_m');
+        end 
+        grid on; box on;
+    
+
+     % Plot lambdaDot
+        axes(axLambdaDot);
+        plot(time_array, lambdaDot_array, 'LineWidth', 2);
+        xlabel('Time (s)', 'FontSize', fontSize);
+        ylabel('LOS Angle Rate, $\dot{\lambda}$ ($^o$/s)', 'Interpreter', 'latex', 'FontSize', fontSize);
+        title('Rate of Change of LOS Angle vs Time', 'FontSize', fontSize);
+        
+        legld{end+1} = [' \lambdadot - Run ', num2str(runCount)];
+        if held == 1  % Update the legend with all runs
+            legend(axLambdaDot, legld);
+        else
+            % Show only the default legend for the first run
+            legend off;
+        end  
+        grid on; box on;
+    
+    % Plot Vc
+        axes(axVc);
+        plot(time_array, Vc_array, 'LineWidth', 2);
+        xlabel('Time (s)', 'FontSize', fontSize);
+        ylabel('Closing Velocity, Vc (m/s)', 'FontSize', fontSize);
+        title('Closing Velocity vs Time', 'FontSize', fontSize);
+    
+        legvc{end+1} =  [' V_c Run ', num2str(runCount)];
+        if held == 1  % Update the legend with all runs
+            legend(axVc, legvc);
+        else
+            % Show only the default legend for the first run
+            legend off;
+        end    
+        grid on; box on;
+    
+        runCount = runCount + 1 ; % Increment run count after each simulation
+      
 end
 
     % Callback function for the button
@@ -373,6 +458,7 @@ end
 
   %% Reset All
     function resetFields(~, ~)
+        stopSimulation = true;
         set(hRt, 'String', '5000; 5000');
         set(hbt, 'String', '0');
         set(hRm, 'String', '0; 5000');
@@ -391,14 +477,16 @@ end
         
         % Clear all plots
         set(hMessageLabel, 'String', '');  % Clear the message
-        hold([hTrajPlot,hPlotNc,hPlotLambda,hPlotLambdaDot,hPlotVc],'off')
+        hold([hTrajPlot,hAnimate,hPlotNc,hPlotLambda,hPlotLambdaDot,hPlotVc],'off')
         cla(hTrajPlot);
         cla(hPlotNc);
         cla(hPlotLambda);
         cla(hPlotLambdaDot);
-        cla(hPlotVc); 
+        cla(hPlotVc);
+        cla(hAnimate); 
         runCount = 1;
         held = 0;
         legtraj = {};  legnc = {};   legl = {};  legld = {};   legvc = {};
+         
     end
 end
