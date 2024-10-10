@@ -12,7 +12,7 @@ function AUG_PRO_NAV
     set(0, 'DefaultAxesTickLabelInterpreter', 'tex');
 
     % GLobal Variables
-    global stopSimulation
+    global stopSimulation 
     fontSize = 11;
     held = 0;
     runCount = 1;
@@ -28,7 +28,7 @@ function AUG_PRO_NAV
     
     bgImage = imread(imagePath);  % Load the image
     % Create an invisible axes for background
-    hBackground = axes('Parent', hFig, 'Position', [0.05, 0.36, 0.2, 1], 'Visible', 'off');
+    hBackground = axes('Parent', hFig, 'Position', [0.02, 0.36, 0.21, 1], 'Visible', 'off');
     imshow(bgImage, 'Parent', hBackground);
     % Set the axes to be the bottom layer
     uistack(hBackground, 'bottom');
@@ -78,20 +78,54 @@ function AUG_PRO_NAV
     uicontrol('Style', 'text', 'Position', [x1, y1-360, w1, 20], 'String', 'Lower Limit for nc:');
     hLowerLimit = uicontrol('Style', 'edit', 'Position', [x1+130,  y1-360, w2, 20], 'String', '-inf');
 
-    %% Simulation and Reset Controls
     uicontrol('Style', 'text','Units','normalized', 'Position', [0.037, 0.196, 0.093, 0.024], 'String', 'Simulation Time Step (s):', ...
               'BackgroundColor',[0.6 0.9 0.9]);
     hdt = uicontrol('Style', 'edit', 'Position', [x1+130, y1-390, w2, 18], 'String', '1e-3');
 
-    uicontrol('Style', 'pushbutton', 'Position', [50, y1-430, w2, 30], 'String', 'Simulate', ...
+%% TRUE OR PURE PRO NAV
+    % Create a label
+    uicontrol('Style', 'text', 'Position', [20, y1-420, 100, 20], 'String', 'Choose guidance type:', ...
+              'FontSize', 10,'ForegroundColor','b');
+    
+    % Create checkboxes with "True" checked by default
+    trueBox = uicontrol('Style', 'checkbox', 'String', 'True', 'Position', [150, y1-420, 50, 20], 'Value', 1, ...
+              'Callback', @(src, event) setGuidType('True'));
+    pureBox = uicontrol('Style', 'checkbox', 'String', 'Pure', 'Position', [200, y1-420, 50, 20], 'Value', 0, ...
+              'Callback', @(src, event) setGuidType('Pure'));
+    
+    % Set the default value of guid_type to "True"
+    setappdata(gcf, 'guid_type', 'True');  % Set default guidance type
+    
+    % Nested function to update the guid_type variable and uncheck the other option
+    function setGuidType(option)
+        if strcmp(option, 'True')
+            set(trueBox, 'Value', 1);  % Check 'True' box
+            set(pureBox, 'Value', 0);  % Uncheck 'Pure' box
+        elseif strcmp(option, 'Pure')
+            set(pureBox, 'Value', 1);  % Check 'Pure' box
+            set(trueBox, 'Value', 0);  % Uncheck 'True' box
+        end
+        
+        % Store guid_type in appdata of the current figure
+        setappdata(gcf, 'guid_type', option);
+        
+        % Display selected option
+        disp(['Selected guidance type: ', option]);
+    end
+
+    
+    %% Simulation and Reset Controls
+
+    uicontrol('Style', 'pushbutton', 'Position', [50, y1-460, w2, 30], 'String', 'Simulate', ...
              'Callback', @runSimulation,'BackgroundColor','g','FontSize',11,'FontWeight','bold');
-    uicontrol('Style', 'pushbutton', 'Position', [x1+130, y1-430, w2, 30], 'String', 'Reset', ...
+    uicontrol('Style', 'pushbutton', 'Position', [x1+130, y1-460, w2, 30], 'String', 'Reset', ...
              'Callback', @resetFields,'BackgroundColor','r','FontSize',11,'FontWeight','bold');
 
-    %% Label for Miss Distance
-    hMissDistanceLabel = uicontrol('Style', 'text', 'Position', [x1+20, y1-470, w1+20, 30], ...
+
+    %% Miss Distance
+    hMissDistanceLabel = uicontrol('Style', 'text', 'Position', [x1+20, y1-500, w1+20, 30], ...
                                     'String', 'Final Miss Distance: ...', ...
-                                    'FontWeight', 'bold', 'FontSize', 12, ...
+                                    'FontWeight', 'bold', 'FontSize', 10.5, ...
                                     'ForegroundColor', 'red');
 
     %% Credit
@@ -103,8 +137,8 @@ function AUG_PRO_NAV
     set(hFig.Children, 'Units', 'normalized');
     
     %% Axes for plotting results
-    hTrajPlot = axes('Parent', hFig,'Units','normalized','Position', [0.35,  0.65, 0.295, 0.3]); box on % Engagement Trajectories
-    hAnimate = axes('Parent', hFig,'Units','normalized', 'Position', [0.69,  0.65, 0.295, 0.3]); box on % Animate Engagement Trajectories
+    hTrajPlot = axes('Parent', hFig,'Units','normalized','Position', [0.35,  0.66, 0.295, 0.3]); box on % Engagement Trajectories
+    hAnimate = axes('Parent', hFig,'Units','normalized', 'Position', [0.69,  0.66, 0.295, 0.3]); box on % Animate Engagement Trajectories
 
     % Create a button to start the animation
     hButton = uicontrol('Style', 'pushbutton', 'String', 'Start Animation','Units','normalized', ...
@@ -163,6 +197,8 @@ function AUG_PRO_NAV
         L = asin(VT * sin(beta + lambda) / VM);
         Vm = [VM * cos(lambda + L + HE); VM * sin(lambda + L + HE)];
         Am = [0; 0];
+        gamma = atan2(Vm(2),Vm(1));
+
         missile_pos = [];
         missile_vel = [];
         missile_acc = [];
@@ -194,12 +230,21 @@ function AUG_PRO_NAV
             lambdaD_n = lambdaD + sigma_LambdaDot * randn();
             Vc_n = Vc + sigma_Vc * randn();
             nT_n = nT + sigma_nT * randn();
-            % Nonlinear APNG Command with limits
-            nc = N * Vc_n * lambdaD_n + N * nT_n / 2;
 
-            nc = max(min(nc, upperLimit), lowerLimit); % Apply limits to nc
-            Am = [-nc * sin(lambda); nc * cos(lambda)];
-            
+            % Nonlinear APNG Command with limits
+            guid_type = getappdata(gcf, 'guid_type');
+            if strcmp(guid_type, 'True')
+               nc = N * Vc_n * lambdaD_n + N * nT_n / 2;
+               nc = max(min(nc, upperLimit), lowerLimit); % Apply limits to nc
+               Am = [-nc * sin(lambda); nc * cos(lambda)];
+            elseif strcmp(guid_type, 'Pure')
+               nc = N * VM * lambdaD_n + N * nT_n / 2;
+               nc = max(min(nc, upperLimit), lowerLimit); % Apply limits to nc
+               Am = [-nc * sin(gamma); nc * cos(gamma)];
+            else
+               disp('Invalid Guidance Type!');
+            end
+           
             % RK4 for missile
             [Rm, Vm] = rk4_missile(Rm, Vm, Am, dt);
             gamma =   atan2(Vm(2),Vm(1));
