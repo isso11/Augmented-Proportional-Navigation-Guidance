@@ -89,10 +89,10 @@ function AUG_PRO_NAV
 
 
     %% Input Fields for Guidance Command Limits (Optional)
-    uicontrol('Style', 'text', 'Position', [x1, y1-330, w1, 20], 'String', 'Upper Limit for nc:');
+    uicontrol('Style', 'text', 'Position', [x1, y1-330, w1, 20], 'String', 'Upper Limit for nc (g):');
     hUpperLimit = uicontrol('Style', 'edit', 'Position', [x1+130, y1-330, w2, 20], 'String', 'inf');
     
-    uicontrol('Style', 'text', 'Position', [x1, y1-360, w1, 20], 'String', 'Lower Limit for nc:');
+    uicontrol('Style', 'text', 'Position', [x1, y1-360, w1, 20], 'String', 'Lower Limit for nc (g):');
     hLowerLimit = uicontrol('Style', 'edit', 'Position', [x1+130,  y1-360, w2, 20], 'String', '-inf');
 
     uicontrol('Style', 'text','Units','normalized', 'Position', [0.037, 0.21, 0.093, 0.024], 'String', 'Simulation Time Step (s):', ...
@@ -201,8 +201,8 @@ function AUG_PRO_NAV
         sigma_LambdaDot = str2double(get(hSigmaLambdaDot, 'String'));
         sigma_nT = str2double(get(hSigmanT, 'String'));
         sigma_Vc = str2double(get(hSigmaVc, 'String'));
-        upperLimit = str2double(get(hUpperLimit, 'String'));
-        lowerLimit = str2double(get(hLowerLimit, 'String'));
+        upperLimit = str2double(get(hUpperLimit, 'String')) * g;
+        lowerLimit = str2double(get(hLowerLimit, 'String')) * g;
 
         % Initial Conditions and Parameters
 
@@ -357,7 +357,7 @@ function AUG_PRO_NAV
         end
 
 
-        plotGuidanceCommands(time_array,nc_array./g, rad2deg(lambda_array),rad2deg(lm_array), ...
+        plotGuidanceCommands(time_array,nc_array, rad2deg(lambda_array),rad2deg(lm_array), ...
                              rad2deg(lambdaDot_array), Vc_array, hPlotNc, hPlotLambda, hPlotLambdaDot, hPlotVc);
                 
         runCount = runCount + 1 ; % Increment run count after each simulation
@@ -442,7 +442,9 @@ function AUG_PRO_NAV
         xlabel(ax,'X Position (m)', 'FontSize', fontSize);
         ylabel(ax,'Y Position (m)', 'FontSize', fontSize);
         title(ax,'Engagement Trajectories', 'FontSize', fontSize);
-     
+        htgt = plot(target_pos(:,1),  'r.', 'MarkerSize', 20); % Initialize red dot
+        hmis = plot(missile_pos(:,1), 'b.', 'MarkerSize', 20); % Initialize red dot
+
         d =  round(length(missile_pos)/(150)); 
         for i = 1:d:length(missile_pos)  
      
@@ -464,9 +466,12 @@ function AUG_PRO_NAV
         break; % Exit the loop
         end
     
-        plot(missile_pos(1,i), missile_pos(2,i),'ko', 'LineWidth', 1.5,'MarkerSize', 2); 
-        plot(target_pos(1,i), target_pos(2,i),'ko', 'LineWidth', 1.5, 'MarkerSize', 2);
-    
+        plot(missile_pos(1,i), missile_pos(2,i),'ko', 'LineWidth', 1,'MarkerSize', 1); 
+        set(hmis, 'XData', missile_pos(1,i), 'YData', missile_pos(2,i));
+
+        plot(target_pos(1,i), target_pos(2,i),'ko', 'LineWidth', 1, 'MarkerSize', 1);
+        set(htgt, 'XData', target_pos(1,i), 'YData', target_pos(2,i));
+
         if i > 1 % Ensure quivers are only drawn after the first iteration
            delete(qv_v);
            delete(qv_a);
@@ -495,7 +500,7 @@ function AUG_PRO_NAV
     
      % Plot nc
         axes(axNc);
-        plot(time_array, nc_array, 'LineWidth', 2);
+        plot(time_array, nc_array./9.81, 'LineWidth', 2);
         xlabel('Time (s)', 'FontSize', fontSize);
         ylabel('Guidance Command, n_c  (g)', 'FontSize', fontSize);
         title('Guidance Command vs Time', 'FontSize', fontSize);
