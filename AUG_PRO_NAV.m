@@ -12,11 +12,12 @@ function AUG_PRO_NAV
     set(0, 'DefaultAxesTickLabelInterpreter', 'tex');
 
     % GLobal Variables
-    global stopSimulation 
+    global stopSimulation guid_type 
+    guid_type = 'True';
     fontSize = 11;
     held = 0;
     runCount = 1;
-    legtraj = {};  legnc = {};   legl = {};  legld = {};   legvc = {};
+    legtraj = {};  legnc = {};   legl = {};  legld = {};   legvc = {}; dmiss = {}; LatD = {};
 
     % Create the main figure window
     hFig = figure('Name', 'Nonlinear APNG Engagement Simulator', 'NumberTitle', 'off', 'Position', [100, 100, 900, 800], ...
@@ -28,21 +29,37 @@ function AUG_PRO_NAV
     
     bgImage = imread(imagePath);  % Load the image
     % Create an invisible axes for background
-    hBackground = axes('Parent', hFig, 'Position', [0.02, 0.36, 0.21, 1], 'Visible', 'off');
+    hBackground = axes('Parent', hFig, 'Position', [0.02, 0.36, 0.19, 1], 'Visible', 'off');
     imshow(bgImage, 'Parent', hBackground);
     % Set the axes to be the bottom layer
     uistack(hBackground, 'bottom');
 
 
     %% Input Fields for Initial Conditions
-    x1 = 10; y1 = 550; w1 = 150; w2 = 50; 
+    x1 = 10; y1 = 560; w1 = 150; w2 = 50; 
     uicontrol('Style', 'text', 'Position', [x1 y1, w1, 20], 'String', 'Target Initial Pos. [Rt] (m):');
     hRt = uicontrol('Style', 'edit', 'Position', [x1+130, y1, w2, 20], 'String', '5000; 5000');
     
     uicontrol('Style', 'text', 'Position', [x1 y1-30, w1, 20], 'String', 'Target Initial Heading. [beta] (deg) :');
     hbt = uicontrol('Style', 'edit', 'Position', [x1+130, y1-30, w2, 20], 'String', '0');
   
+    %%  Pseudo Pilot Dynamics controls
+    hTauPanel = uipanel('Parent', hFig,'Units', 'normalized', 'Position', [0.22 0.60 0.09 0.08] ...
+        ,'BackgroundColor',[0.8 0.8 0.9]);  % Position and size of the frame
+  
+    % Add the button inside the panel
+    uicontrol('Parent', hTauPanel, 'Style', 'text', 'String', '1st Order Dynamics', ...
+              'Units', 'normalized', 'Position', [0.05 0.65 0.90 0.30],'BackgroundColor',[0.8 0.8 0.9]);
+
+    % Add a label for the tau input field inside the panel
+    uicontrol('Parent', hTauPanel, 'Style', 'text', 'String', 'Enter tau (s):', ...
+             'Units', 'normalized', 'Position', [0.08 0.2 0.60 0.30]);
+    hTauInput = uicontrol('Parent', hTauPanel, 'Style', 'edit', 'String', '0', ...
+        'Units', 'normalized', 'Position', [0.71 0.2 0.25 0.30]);
     uicontrol('Style', 'text', 'Position', [x1, y1-60, w1, 20], 'String', 'Missile Initial Pos. [Rm] (m):');
+
+    %%
+    
     hRm = uicontrol('Style', 'edit', 'Position', [x1+130, y1-60, w2, 20], 'String', '0; 5000');
     
     uicontrol('Style', 'text', 'Position', [x1, y1-90, w1, 20], 'String', 'Target Velocity [VT] (m/s):');
@@ -51,7 +68,7 @@ function AUG_PRO_NAV
     uicontrol('Style', 'text', 'Position', [x1, y1-120, w1, 20], 'String', 'Missile Velocity [VM] (m/s):');
     hVM = uicontrol('Style', 'edit', 'Position', [x1+130,  y1-120, w2, 20], 'String', '300');
     
-    uicontrol('Style', 'text', 'Position', [x1, y1-150, w1, 20], 'String', 'Missile Heading Angle [HE] (rad):');
+    uicontrol('Style', 'text', 'Position', [x1, y1-150, w1, 20], 'String', 'Missile Heading Error [HE] (deg):');
     hHE = uicontrol('Style', 'edit', 'Position', [x1+130, y1-150, w2, 20], 'String', '0');
     
     uicontrol('Style', 'text', 'Position', [x1, y1-180, w1, 20], 'String', 'Target Acceleration [nT] (g):');
@@ -78,7 +95,7 @@ function AUG_PRO_NAV
     uicontrol('Style', 'text', 'Position', [x1, y1-360, w1, 20], 'String', 'Lower Limit for nc:');
     hLowerLimit = uicontrol('Style', 'edit', 'Position', [x1+130,  y1-360, w2, 20], 'String', '-inf');
 
-    uicontrol('Style', 'text','Units','normalized', 'Position', [0.037, 0.196, 0.093, 0.024], 'String', 'Simulation Time Step (s):', ...
+    uicontrol('Style', 'text','Units','normalized', 'Position', [0.037, 0.21, 0.093, 0.024], 'String', 'Simulation Time Step (s):', ...
               'BackgroundColor',[0.6 0.9 0.9]);
     hdt = uicontrol('Style', 'edit', 'Position', [x1+130, y1-390, w2, 18], 'String', '1e-3');
 
@@ -88,13 +105,10 @@ function AUG_PRO_NAV
               'FontSize', 10,'ForegroundColor','b');
     
     % Create checkboxes with "True" checked by default
-    trueBox = uicontrol('Style', 'checkbox', 'String', 'True', 'Position', [150, y1-420, 50, 20], 'Value', 1, ...
+    trueBox = uicontrol('Style', 'checkbox', 'String', 'True', 'Position', [130, y1-420, 50, 20], 'Value', 1, ...
               'Callback', @(src, event) setGuidType('True'));
-    pureBox = uicontrol('Style', 'checkbox', 'String', 'Pure', 'Position', [200, y1-420, 50, 20], 'Value', 0, ...
+    pureBox = uicontrol('Style', 'checkbox', 'String', 'Pure', 'Position', [170, y1-420, 50, 20], 'Value', 0, ...
               'Callback', @(src, event) setGuidType('Pure'));
-    
-    % Set the default value of guid_type to "True"
-    setappdata(gcf, 'guid_type', 'True');  % Set default guidance type
     
     % Nested function to update the guid_type variable and uncheck the other option
     function setGuidType(option)
@@ -105,15 +119,11 @@ function AUG_PRO_NAV
             set(pureBox, 'Value', 1);  % Check 'Pure' box
             set(trueBox, 'Value', 0);  % Uncheck 'True' box
         end
-        
-        % Store guid_type in appdata of the current figure
-        setappdata(gcf, 'guid_type', option);
-        
+        guid_type = option;
         % Display selected option
         disp(['Selected guidance type: ', option]);
     end
 
-    
     %% Simulation and Reset Controls
 
     uicontrol('Style', 'pushbutton', 'Position', [50, y1-460, w2, 30], 'String', 'Simulate', ...
@@ -121,17 +131,20 @@ function AUG_PRO_NAV
     uicontrol('Style', 'pushbutton', 'Position', [x1+130, y1-460, w2, 30], 'String', 'Reset', ...
              'Callback', @resetFields,'BackgroundColor','r','FontSize',11,'FontWeight','bold');
 
-
     %% Miss Distance
-    hMissDistanceLabel = uicontrol('Style', 'text', 'Position', [x1+20, y1-500, w1+20, 30], ...
+    hMissDistanceLabel = uicontrol('Style', 'text', 'Position', [x1+20, y1-495, w1+70, 25], ...
                                     'String', 'Final Miss Distance: ...', ...
-                                    'FontWeight', 'bold', 'FontSize', 10.5, ...
-                                    'ForegroundColor', 'red');
-
+                                    'FontWeight', 'bold', 'FontSize', 10,...
+                                    'ForegroundColor', 'r','HorizontalAlignment','left');
+    %% Lateral Divert
+    hLateralD = uicontrol('Style', 'text', 'Position', [x1+20, y1-515, w1+70, 20], ...
+                                    'String', 'Total Lateral Divert: ...', ...
+                                    'FontWeight', 'bold', 'FontSize', 10, ...
+                                    'ForegroundColor', 'b','HorizontalAlignment','left');
     %% Credit
-    uicontrol('Style', 'text','Units','normalized', 'Position', [0.01, 0.013, 0.25, 0.025], ...
+    uicontrol('Style', 'text','Units','normalized', 'Position', [0.01, 0.013, 0.22, 0.025], ...
         'String', 'Created by: Islam Elnady * islamelnady@yahoo.com*', ...
-             'BackgroundColor',[0.95 0.95 0.0],'FontSize',10,'HorizontalAlignment','center');
+             'BackgroundColor',[0.95 0.95 0.0],'FontSize',9,'HorizontalAlignment','center');
 
 
     set(hFig.Children, 'Units', 'normalized');
@@ -173,8 +186,12 @@ function AUG_PRO_NAV
         VM = str2double(get(hVM, 'String'));
         HE = deg2rad(str2double(get(hHE, 'String')));
         dt = str2double(get(hdt, 'String'));
-        t_max = 1000;
+        tau = str2double(get(hTauInput, 'String'));  % Get the tau value from the input
+       
+        alpha = dt / (tau + dt); % Calculate the alpha coefficient for the delay
+        nc_d = 0;
 
+        t_max = 1000;
         g = 9.81; % acceleration due to gravity in m/s^2
         nT_g = str2double(get(hNT, 'String'));
         nT = nT_g * g; % convert to m/s^2
@@ -203,7 +220,7 @@ function AUG_PRO_NAV
         missile_vel = [];
         missile_acc = [];
         lm_array = [];
-
+        
         target_pos = [];
         Rr_array = [];
 
@@ -218,7 +235,7 @@ function AUG_PRO_NAV
         Vc = 1000;
                
         % Simulation loop
-        while R >= 0.5 && Vc >= 0 && t <= t_max
+        while R >= 0.1 && Vc >= 0 && t <= t_max
             Rr = Rt - Rm;
             R = norm(Rr);
             Vr = Vt - Vm;
@@ -232,14 +249,24 @@ function AUG_PRO_NAV
             nT_n = nT + sigma_nT * randn();
 
             % Nonlinear APNG Command with limits
-            guid_type = getappdata(gcf, 'guid_type');
             if strcmp(guid_type, 'True')
                nc = N * Vc_n * lambdaD_n + N * nT_n / 2;
                nc = max(min(nc, upperLimit), lowerLimit); % Apply limits to nc
+                    if tau ~=0
+                    % Apply first-order time delay
+                       nc_d = alpha * nc + (1 - alpha) * nc_d; % Update delayed value
+                       nc = nc_d;
+                    end
                Am = [-nc * sin(lambda); nc * cos(lambda)];
+
             elseif strcmp(guid_type, 'Pure')
                nc = N * VM * lambdaD_n + N * nT_n / 2;
                nc = max(min(nc, upperLimit), lowerLimit); % Apply limits to nc
+                    if tau ~=0
+                    % Apply first-order time delay
+                       nc_d = alpha * nc + (1 - alpha) * nc_d; % Update delayed value
+                       nc = nc_d;
+                    end
                Am = [-nc * sin(gamma); nc * cos(gamma)];
             else
                disp('Invalid Guidance Type!');
@@ -282,27 +309,59 @@ function AUG_PRO_NAV
         end
         
         % Calculate final miss distance
-        final_miss_distance = norm(Rt - Rm);
-        set(hMissDistanceLabel, 'String', ['Final Miss Distance: ', sprintf('%.3f', final_miss_distance), ' m']);
-        
+        md = norm(Rt - Rm);
+        dmiss{end+1} = sprintf('%.2f m', md);  % Curly braces {} for cell assignment 
+        if held ~= 1
+            set(hMissDistanceLabel, 'String', ['Final Miss Distance:  ', sprintf('%.3f', md), ' m']);
+        elseif held == 1
+            allmd = strjoin(dmiss, ', '); % Concatenate with a comma and space
+            set(hMissDistanceLabel,'Backgroundcolor',[0.9 0.9 0.9],'String', ['Final Miss Distances: ', allmd]);
+        end
+
         % Check if missile intercepted the target
         if R < 1
             disp(['Missile intercepted the target at time t = ', num2str(t), ' seconds.']);
         else
             disp('Missile failed to intercept the target.');
-        end
-        
-        % Plot the results
+        end 
     
         stopSimulation = false;
-       
+
+        % Plot the results
+
         % Make the handle accessible for the callback
         guidata(hFig, struct('missile_pos', missile_pos, 'missile_vel', missile_vel, ...
                          'missile_acc', missile_acc, 'target_pos', target_pos));
 
         plotTrajectories(missile_pos, target_pos, hTrajPlot);
-        plotGuidanceCommands(time_array, nc_array./g, rad2deg(lambda_array),rad2deg(lm_array), ...
+
+        if length(nc_array) > 100
+           % Apply moving average filter to the last 100 indices
+           time_array(end-99:end)      = medfilt1(time_array(end-99:end), 5);
+           nc_array(end-99:end)        = medfilt1(nc_array(end-99:end), 5);
+           lambda_array(end-99:end)    = medfilt1(lambda_array(end-99:end), 5);
+           lm_array(end-99:end)        = medfilt1(lm_array(end-99:end), 5);
+           lambdaDot_array(end-99:end) = medfilt1(lambdaDot_array(end-99:end), 5);
+           Vc_array(end-99:end)        = medfilt1(Vc_array(end-99:end), 5);
+        end
+
+        % Get lateral divert
+        LD = trapz(time_array,abs(nc_array)./9.81);
+        LatD{end+1} = sprintf('%.2f g', LD);  % Curly braces {} for cell assignment 
+
+        if held ~= 1
+           set(hLateralD, 'String', ['Total Lateral Divert:  ', sprintf('%.3f', LD), ' g']);
+        elseif held == 1
+            allLD = strjoin(LatD, ', '); % Concatenate with a comma and space
+            set(hLateralD,'Backgroundcolor',[0.9 0.9 0.9], 'String', ['Total Lateral Divert: ', allLD]);
+        end
+
+
+        plotGuidanceCommands(time_array,nc_array./g, rad2deg(lambda_array),rad2deg(lm_array), ...
                              rad2deg(lambdaDot_array), Vc_array, hPlotNc, hPlotLambda, hPlotLambdaDot, hPlotVc);
+                
+        runCount = runCount + 1 ; % Increment run count after each simulation
+
     end
 
 
@@ -387,13 +446,18 @@ function AUG_PRO_NAV
         d =  round(length(missile_pos)/(150)); 
         for i = 1:d:length(missile_pos)  
      
-        % Check if 'i' reaches near the end of the data
-        if i >= length(missile_pos) - 3000
-           xl = [missile_pos(1,i)-500, missile_pos(1,i)+500];
-           yl = [missile_pos(2,i)-500, missile_pos(2,i)+500];
-           set(gca, 'XLim', xl);
-           set(gca, 'YLim', yl);  
-        end
+        % Define the zoom range around the current position
+            zoom_range = 1000; % You can adjust this range as needed
+            % Check if the position index is within valid bounds
+            if norm(target_pos(:,i) - missile_pos(:,i)) <= 1500 && i <= length(missile_pos)
+                % Calculate the limits for X and Y
+                xl = [missile_pos(1, i) - zoom_range, missile_pos(1, i) + zoom_range];
+                yl = [missile_pos(2, i) - zoom_range, missile_pos(2, i) + zoom_range];
+                
+                % Update the plot limits
+                set(gca, 'XLim', xl);
+                set(gca, 'YLim', yl);
+            end
     
         if stopSimulation
         disp('Simulation stopped.');
@@ -499,7 +563,6 @@ function AUG_PRO_NAV
         end    
         grid on; box on;
     
-        runCount = runCount + 1 ; % Increment run count after each simulation
       
 end
 
@@ -528,7 +591,13 @@ end
         set(hUpperLimit, 'String', 'inf');
         set(hLowerLimit, 'String', '-inf');
         set(hdt, 'String', '1e-3');
-        set(hMissDistanceLabel, 'String', 'Final Miss Distance: ...');
+        set(hMissDistanceLabel,'BackgroundColor',[0.95 0.95 0.95], 'String', 'Final Miss Distance: ...');
+        set(hLateralD,'BackgroundColor',[0.95 0.95 0.95], 'String', 'Total Lateral Divert: ...');
+        set(hTauInput, 'String', '0');
+        set(trueBox, 'Value', 1);  % Check 'True' box
+        set(pureBox, 'Value', 0);  % Check 'True' box
+        guid_type = 'True';
+
         
         % Clear all plots
         set(hMessageLabel, 'String', '');  % Clear the message
@@ -542,6 +611,6 @@ end
         runCount = 1;
         held = 0;
         legtraj = {};  legnc = {};   legl = {};  legld = {};   legvc = {};
-         
+        dmiss = {}; LatD = {};
     end
 end
