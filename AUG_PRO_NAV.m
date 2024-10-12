@@ -360,7 +360,7 @@ function AUG_PRO_NAV
                 set(hMissDistanceLabel, 'String', ['Final Miss Distance:  ', sprintf('%.3f', md), ' m']);
             elseif held == 1
                 % Hold is active
-                if isempty(dmissHold)  % Use a separate variable to store data when hold is active
+                if isempty(dmissHold) && numel(dmiss) > 1  % Use a separate variable to store data when hold is active
                     % Initialize and start with the current and previous value
                     dmissHold = dmiss(end-1:end);  
                 else
@@ -409,12 +409,12 @@ function AUG_PRO_NAV
            set(hLateralD, 'String', ['Total Lateral Divert:  ', sprintf('%.3f', LD), ' g']);      
         elseif held == 1
                 % Hold is active
-                if isempty(LatDHold)  % Use a separate variable to store data when hold is active
+                if isempty(LatDHold) && numel(LatD) > 1 % Use a separate variable to store data when hold is active
                     % Initialize and start with the current and previous value
                     LatDHold = LatD(end-1:end);  
                 else
                     % Append new values as additional runs are done while hold is active
-                    LatDHold{end+1} = sprintf('%.2f g', md);
+                    LatDHold{end+1} = sprintf('%.2f g', LD);
                 end
             allLD = strjoin(LatDHold, ', '); % Concatenate with a comma and space
             set(hLateralD,'Backgroundcolor',[0.9 0.9 0.9], 'String', ['Total Lateral Divert: ', allLD]);
