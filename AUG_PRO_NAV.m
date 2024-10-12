@@ -17,7 +17,7 @@ function AUG_PRO_NAV
     fontSize = 11;
     held = 0;
     runCount = 1;
-    legtraj = {};  legnc = {};   legl = {};  legld = {};   legvc = {}; dmiss = {}; LatD = {};
+    legtraj = {};  legnc = {};   legl = {};  legld = {};   legvc = {}; dmiss = {}; LatD = {}; dmissHold = {}; LatDHold = {};
 
     % Create the main figure window
     hFig = figure('Name', 'Nonlinear APNG Engagement Simulator', 'NumberTitle', 'off', 'Position', [100, 100, 900, 800], ...
@@ -219,7 +219,9 @@ function AUG_PRO_NAV
     %% Callback Function for Running the Simulation
     function runSimulation(~, ~)
         set(hButton, 'Visible', 'on');
-        if held ~=1;  cla(hAnimate);  end
+        if held ~= 1 
+            cla(hAnimate);  
+        end
 
         % Get inputs from GUI
         Rt = str2num(get(hRt, 'String'));
@@ -349,16 +351,29 @@ function AUG_PRO_NAV
             % Time update
             t = t + dt;
         end
-        
-        % Calculate final miss distance
-        md = norm(Rt - Rm);
-        dmiss{end+1} = sprintf('%.2f m', md);  % Curly braces {} for cell assignment 
-        if held ~= 1
-            set(hMissDistanceLabel, 'String', ['Final Miss Distance:  ', sprintf('%.3f', md), ' m']);
-        elseif held == 1
-            allmd = strjoin(dmiss, ', '); % Concatenate with a comma and space
-            set(hMissDistanceLabel,'Backgroundcolor',[0.9 0.9 0.9],'String', ['Final Miss Distances: ', allmd]);
-        end
+                    
+            % Calculate final miss distance
+            md = norm(Rt - Rm);
+            dmiss{end+1} = sprintf('%.2f m', md);  
+
+            if held ~= 1
+                set(hMissDistanceLabel, 'String', ['Final Miss Distance:  ', sprintf('%.3f', md), ' m']);
+            elseif held == 1
+                % Hold is active
+                if isempty(dmissHold)  % Use a separate variable to store data when hold is active
+                    % Initialize and start with the current and previous value
+                    dmissHold = dmiss(end-1:end);  
+                else
+                    % Append new values as additional runs are done while hold is active
+                    dmissHold{end+1} = sprintf('%.2f m', md);
+                end
+                % Concatenate all miss distances after hold
+                allmd = strjoin(dmissHold, ', '); 
+                set(hMissDistanceLabel, 'Backgroundcolor', [0.9 0.9 0.9], 'String', ['Final Miss Distances: ', allmd]);
+            end
+
+
+
 
         % Check if missile intercepted the target
         if R < 1
@@ -378,7 +393,7 @@ function AUG_PRO_NAV
         plotTrajectories(missile_pos, target_pos, hTrajPlot);
 
         if length(nc_array) > 100
-           % Apply moving average filter to the last 100 indices
+           % Apply median filter to the last 100 indices to suppress spikes
            time_array(end-99:end)      = medfilt1(time_array(end-99:end), 5);
            nc_array(end-99:end)        = medfilt1(nc_array(end-99:end), 5);
            lambda_array(end-99:end)    = medfilt1(lambda_array(end-99:end), 5);
@@ -390,11 +405,18 @@ function AUG_PRO_NAV
         % Get lateral divert
         LD = trapz(time_array,abs(nc_array)./9.81);
         LatD{end+1} = sprintf('%.2f g', LD);  % Curly braces {} for cell assignment 
-
         if held ~= 1
-           set(hLateralD, 'String', ['Total Lateral Divert:  ', sprintf('%.3f', LD), ' g']);
+           set(hLateralD, 'String', ['Total Lateral Divert:  ', sprintf('%.3f', LD), ' g']);      
         elseif held == 1
-            allLD = strjoin(LatD, ', '); % Concatenate with a comma and space
+                % Hold is active
+                if isempty(LatDHold)  % Use a separate variable to store data when hold is active
+                    % Initialize and start with the current and previous value
+                    LatDHold = LatD(end-1:end);  
+                else
+                    % Append new values as additional runs are done while hold is active
+                    LatDHold{end+1} = sprintf('%.2f g', md);
+                end
+            allLD = strjoin(LatDHold, ', '); % Concatenate with a comma and space
             set(hLateralD,'Backgroundcolor',[0.9 0.9 0.9], 'String', ['Total Lateral Divert: ', allLD]);
         end
 
@@ -658,6 +680,6 @@ end
         runCount = 1;
         held = 0;
         legtraj = {};  legnc = {};   legl = {};  legld = {};   legvc = {};
-        dmiss = {}; LatD = {};
-    end
+        dmiss = {}; LatD = {}; dmissHold = {}; LatDHold = {};
+    end 
 end
