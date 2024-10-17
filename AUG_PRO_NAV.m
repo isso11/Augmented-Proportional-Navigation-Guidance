@@ -17,7 +17,8 @@ function AUG_PRO_NAV
     fontSize = 11;
     held = 0;
     runCount = 1;
-    legtraj = {};  legnc = {};   legl = {};  legld = {};   legvc = {}; dmiss = {}; LatD = {}; dmissHold = {}; LatDHold = {};
+    legtraj = {};  legl = {};  legld = {};   legvc = {}; dmiss = {}; lega = {};
+    LatD = {}; dmissHold = {}; LatDHold = {};
 
     % Create the main figure window
     hFig = figure('Name', 'Nonlinear APNG Engagement Simulator', 'NumberTitle', 'off', 'Position', [100, 100, 900, 800], ...
@@ -231,7 +232,10 @@ function AUG_PRO_NAV
         HE = deg2rad(str2double(get(hHE, 'String')));
         dt = str2double(get(hdt, 'String'));
         tau = str2double(get(hTauInput, 'String'));  % Get the tau value from the input
-       
+        if tau == 0; disp('Zero-Lag Guidance!')
+        else; disp(['1st Order Lag Gudiance with time constant: ' num2str(tau) ' sec'])
+        end
+        
         alpha = dt / (tau + dt); % Calculate the alpha coefficient for the delay
         nc_d = 0;
 
@@ -263,12 +267,14 @@ function AUG_PRO_NAV
         missile_pos = [];
         missile_vel = [];
         missile_acc = [];
+        gamma_array = [];
         lm_array = [];
         
         target_pos = [];
         Rr_array = [];
 
         nc_array = [];
+        AM_array = [];
         lambda_array = [];
         lambdaDot_array = [];
         Vc_array = [];
@@ -296,22 +302,18 @@ function AUG_PRO_NAV
             if strcmp(guid_type, 'True')
                nc = N * Vc_n * lambdaD_n + N * nT_n / 2;
                nc = max(min(nc, upperLimit), lowerLimit); % Apply limits to nc
-                    if tau ~=0
-                    % Apply first-order time delay
-                       nc_d = alpha * nc + (1 - alpha) * nc_d; % Update delayed value
-                       nc = nc_d;
-                    end
-               Am = [-nc * sin(lambda); nc * cos(lambda)];
+            % Apply first-order time delay if exists
+               nc_d = alpha * nc + (1 - alpha) * nc_d; % Update delayed value
+               AM = nc_d;
+               Am = [-nc_d * sin(lambda); nc_d * cos(lambda)];
 
             elseif strcmp(guid_type, 'Pure')
                nc = N * VM * lambdaD_n + N * nT_n / 2;
                nc = max(min(nc, upperLimit), lowerLimit); % Apply limits to nc
-                    if tau ~=0
-                    % Apply first-order time delay
-                       nc_d = alpha * nc + (1 - alpha) * nc_d; % Update delayed value
-                       nc = nc_d;
-                    end
-               Am = [-nc * sin(gamma); nc * cos(gamma)];
+            % Apply first-order time delay if exists
+               nc_d = alpha * nc + (1 - alpha) * nc_d; % Update delayed value
+               AM = nc_d;
+               Am = [-nc_d * sin(gamma); nc_d * cos(gamma)];
             else
                disp('Invalid Guidance Type!');
             end
@@ -335,6 +337,7 @@ function AUG_PRO_NAV
             missile_pos = [missile_pos, Rm];
             missile_vel = [missile_vel, Vm];
             missile_acc = [missile_acc, Am];
+            gamma_array = [gamma_array gamma];
             lm_array = [lm_array Lm];
 
             target_pos = [target_pos, Rt];
@@ -343,6 +346,7 @@ function AUG_PRO_NAV
 
 
             nc_array = [nc_array, nc];
+            AM_array = [AM_array AM];
             lambda_array = [lambda_array, lambda];
             lambdaDot_array = [lambdaDot_array, lambdaD];
             Vc_array = [Vc_array, Vc];
@@ -421,7 +425,7 @@ function AUG_PRO_NAV
         end
 
 
-        plotGuidanceCommands(time_array,nc_array, rad2deg(lambda_array),rad2deg(lm_array), ...
+        plotGuidanceCommands(time_array, nc_array, AM_array, rad2deg(lambda_array), rad2deg(gamma_array), rad2deg(lm_array), ...
                              rad2deg(lambdaDot_array), Vc_array, hPlotNc, hPlotLambda, hPlotLambdaDot, hPlotVc);
                 
         runCount = runCount + 1 ; % Increment run count after each simulation
@@ -559,43 +563,45 @@ function AUG_PRO_NAV
    end
 
 
-   function plotGuidanceCommands(time_array, nc_array, lambda_array, lm_array, lambdaDot_array, ...
+   function plotGuidanceCommands(time_array, nc_array, AM_array, lambda_array, gamma_array, lm_array, lambdaDot_array, ...
                                  Vc_array,axNc, axLambda, axLambdaDot, axVc)
     
      % Plot nc
         axes(axNc);
         plot(time_array, nc_array./9.81, 'LineWidth', 2);
-        xlabel('Time (s)', 'FontSize', fontSize);
-        ylabel('Guidance Command, n_c  (g)', 'FontSize', fontSize);
-        title('Guidance Command vs Time', 'FontSize', fontSize);
-        legnc{end+1} = [' n_c - Run ', num2str(runCount)];
-    
-        if held == 1  % Update the legend with all runs
-            legend(axNc, legnc);
+        hold on;
+        plot(time_array, AM_array./9.81, 'LineWidth', 2);
+        ylabel('n_c,  A_m (g)', 'FontSize', fontSize,'FontWeight','bold');
+        title('Guidance Command vs Achieved Acceleration', 'FontSize', fontSize); 
+        hold off;
+        lega{end+1} = [' n_c - Run ', num2str(runCount)];
+        lega{end+1} = [' A_m - Run ', num2str(runCount)];  % Update the legend with all runs
+        if held == 1 
+           legend(axNc, lega);
         else
-            legend off;
-        end
+           legend('n_c', 'A_m');
+        end 
         grid on; box on;
         
         
-     % Plot lambda and leading angle
+     % Plot lambda and gamma
         axes(axLambda);
         plot(time_array, lambda_array, 'LineWidth', 2, 'DisplayName', [' \lambda - Run ', num2str(runCount)]);
         hold on;
-        plot(time_array, lm_array, 'LineWidth', 2, 'DisplayName', ['\beta_m - Run ', num2str(runCount)]);
+        plot(time_array, gamma_array, 'LineWidth', 2, 'DisplayName', ['\beta_m - Run ', num2str(runCount)]);
         xlabel('Time (s)', 'FontSize', fontSize);
-        ylabel('\lambda_L_O_S, \beta_m (^o)', 'FontSize', fontSize);
-        title('LOS Angle and Leading Angle vs Time', 'FontSize', fontSize);
+        ylabel('\lambda_{los},  \gamma_m (^o)', 'FontSize', fontSize,'FontWeight','bold');
+        title('LOS Angle and Flight Path Angle vs Time', 'FontSize', fontSize);
         hold off;
         % Append the new legend entries
           legl{end+1} = [' \lambda - Run ', num2str(runCount)];
-          legl{end+1} = [' \beta_m - Run ', num2str(runCount)];
+          legl{end+1} = [' \gamma_m - Run ', num2str(runCount)];
         
         if held == 1  % Update the legend with all runs
             legend(axLambda, legl);
         else
             % Show only the default legend for the first run
-            legend('\lambda', '\beta_m');
+            legend('\lambda', '\gamma_m');
         end 
         grid on; box on;
     
@@ -670,16 +676,14 @@ end
         
         % Clear all plots
         set(hMessageLabel, 'String', '');  % Clear the message
-        hold([hTrajPlot,hAnimate,hPlotNc,hPlotLambda,hPlotLambdaDot,hPlotVc],'off')
-        cla(hTrajPlot);
-        cla(hPlotNc);
-        cla(hPlotLambda);
-        cla(hPlotLambdaDot);
-        cla(hPlotVc);
-        cla(hAnimate); 
+        % Clear all plots
+        plotHandles = [hTrajPlot, hPlotNc, hPlotLambda, hPlotLambdaDot, hPlotVc, hAnimate];   
+        for h = plotHandles
+            cla(h);   title(h, '');  xlabel(h, '');   ylabel(h, '');   hold(h,'off')
+        end
         runCount = 1;
         held = 0;
-        legtraj = {};  legnc = {};   legl = {};  legld = {};   legvc = {};
-        dmiss = {}; LatD = {}; dmissHold = {}; LatDHold = {};
+        legtraj = {};  legl = {};     legld = {};      legvc = {}; lega = {};
+        dmiss   = {};  LatD = {}; dmissHold = {};   LatDHold = {};
     end 
 end
