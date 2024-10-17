@@ -127,7 +127,7 @@ function AUG_PRO_NAV
 
     %% Simulation and Reset Controls
 
-    uicontrol('Style', 'pushbutton', 'Position', [50, y1-460, w2, 30], 'String', 'Simulate', ...
+    hSim = uicontrol('Style', 'pushbutton', 'Position', [50, y1-460, w2, 30], 'String', 'Simulate', ...
              'Callback', @runSimulation,'BackgroundColor','g','FontSize',11,'FontWeight','bold');
     uicontrol('Style', 'pushbutton', 'Position', [x1+130, y1-460, w2, 30], 'String', 'Reset', ...
              'Callback', @resetFields,'BackgroundColor','r','FontSize',11,'FontWeight','bold');
@@ -235,7 +235,7 @@ function AUG_PRO_NAV
         if tau == 0; disp('Zero-Lag Guidance!')
         else; disp(['1st Order Lag Gudiance with time constant: ' num2str(tau) ' sec'])
         end
-        
+
         alpha = dt / (tau + dt); % Calculate the alpha coefficient for the delay
         nc_d = 0;
 
@@ -283,6 +283,7 @@ function AUG_PRO_NAV
         t = 0;
         R = norm(Rt - Rm);
         Vc = 1000;
+        iter = 0;
                
         % Simulation loop
         while R >= 0.1 && Vc >= 0 && t <= t_max
@@ -354,8 +355,26 @@ function AUG_PRO_NAV
             
             % Time update
             t = t + dt;
+            iter = iter + 1;
+
+            % Toggle color every 5000 iterations
+            if mod(iter, 5000) == 0
+                % Get the current color of the circle
+                currentColor = get(hSim, 'Backgroundcolor');
+            
+                % Check if the current color is green ('g' or RGB [0 1 0])
+                if isequal(currentColor, 'g') || isequal(currentColor, [0 1 0])
+                    % Switch to yellow ('y' or RGB [1 1 0])
+                    set(hSim, 'Backgroundcolor', [0.9 0.9 0.9]);
+                else
+                    % Switch back to green ('g')
+                    set(hSim, 'Backgroundcolor', 'g');
+                end
+                drawnow
+            end
         end
-                    
+           set(hSim, 'Backgroundcolor', 'g');
+            
             % Calculate final miss distance
             md = norm(Rt - Rm);
             dmiss{end+1} = sprintf('%.2f m', md);  
