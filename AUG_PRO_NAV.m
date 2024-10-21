@@ -301,7 +301,7 @@ function AUG_PRO_NAV
 
             % Nonlinear APNG Command with limits
             if strcmp(guid_type, 'True')
-               nc = N * Vc_n * lambdaD_n + N * nT_n / 2;
+               nc = N * Vc_n * lambdaD_n + N * nT_n*cos(lambda+beta) / 2;
                nc = max(min(nc, upperLimit), lowerLimit); % Apply limits to nc
             % Apply first-order time delay if exists
                nc_d = alpha * nc + (1 - alpha) * nc_d; % Update delayed value
@@ -309,7 +309,7 @@ function AUG_PRO_NAV
                Am = [-nc_d * sin(lambda); nc_d * cos(lambda)];
 
             elseif strcmp(guid_type, 'Pure')
-               nc = N * VM * lambdaD_n + N * nT_n / 2;
+               nc = N * VM * lambdaD_n + N * nT_n*cos(lambda+beta) / 2;
                nc = max(min(nc, upperLimit), lowerLimit); % Apply limits to nc
             % Apply first-order time delay if exists
                nc_d = alpha * nc + (1 - alpha) * nc_d; % Update delayed value
